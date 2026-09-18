@@ -27,19 +27,19 @@ onRecordAuthRequest((e) => {
   }
 
 
-  // WARNING: Les heures sont au format UTC donc heure reel = heure + 2
+  // WARNING: The times are in the actual school's time, so the time in Europe/Paris
   const SHOTGUN_WAVES = {
-    WEB: "2026-09-14 09:00:00",
-    BUREAU_BDE: "2026-09-14 14:50:00",
-    BDE: "2026-09-14 15:00:00",
-    BAR: "2026-09-14 15:30:00",
-    BUREAU_BAE: "2026-09-14 15:45:00",
-    BDA: "2026-09-14 16:00:00",
-    BDS: "2026-09-14 16:00:00",
-    ESSAIM: "2026-09-14 16:30:00",
+    WEB: "2026-09-14 11:00:00",
+    BUREAU_BDE: "2026-09-14 16:50:00",
+    BDE: "2026-09-14 17:00:00",
+    BAR: "2026-09-14 17:30:00",
+    BUREAU_BAE: "2026-09-14 17:45:00",
+    BDA: "2026-09-14 18:00:00",
+    BDS: "2026-09-14 18:00:00",
+    ESSAIM: "2026-09-14 18:30:00",
   }
 
-  const SHOTGUNW_DATE_FOR_OTHERS = "2026-09-14 18:00:00";
+  const SHOTGUNW_DATE_FOR_OTHERS = "2026-09-14 20:00:00";
   const groupes = parseGroups("./pb_hooks/shotgun_groups.csv");
 
   console.log("feur");
@@ -101,9 +101,11 @@ onRecordAuthRequest((e) => {
     }
 
     const group = groupes[e.record.get("username")] ?? null;
-    const shotgunDate = (group === null) ? SHOTGUNW_DATE_FOR_OTHERS : SHOTGUN_WAVES[group];
+    // WARNING: the locale datetime is automatically shifted to UTC  
+    // be careful to explicitly set the TZ env variable to Europe/Paris in your pocketbase environment
+    const shotgunDate = new Date((group === null) ? SHOTGUNW_DATE_FOR_OTHERS : SHOTGUN_WAVES[group]);
 
-    if (!e.record.get("shotgunDate") || e.record.get("shotgunDate") != shotgunDate) {
+    if (!e.record.get("shotgunDate") || new Date(e.record.get("shotgunDate").replace(" ", "T")) != shotgunDate) {
       e.record.set("shotgunDate", shotgunDate);
       needsUpdate = true;
     }

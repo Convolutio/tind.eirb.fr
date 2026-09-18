@@ -19,4 +19,6 @@ EXPOSE 80
 
 COPY --from=builder /app/backend .
 
+ENV TZ=Europe/Paris
+
 CMD [ "/app/pocketbase", "serve", "--http", "0.0.0.0:80" ]
