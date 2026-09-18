@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../types';
+import pb from '../api/pocketbase';
 import Header from '../components/Parrain/Header';
 import TabNavigation from '../components/Parrain/TabNavigation';
 import FillotList from '../components/Parrain/FillotList';
@@ -78,14 +79,10 @@ const ParrainView: React.FC<ParrainViewProps> = ({ user, pb, logout, setUser }) 
   // Fetch fillots from the database based on the user's diploma
   const fetchFillots = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/fillots?idParrain=${encodeURIComponent(user.id)}`);
-      const data = await response.json();
-      if (data.status === 'success') {
-        setListFillots(data.fillots);
-        applyFilter(currentTab, data.fillots);
-      } else {
-        console.error('Failed to fetch fillots:', data.message);
-      }
+      const data = await pb.collection<{parrain: string, fillot: User}>("adoptions").getFullList({expand: 'fillot'});
+      const fillots = data.map(rel => rel.fillot);
+      setListFillots(fillots);
+      applyFilter(currentTab, fillots);
     } catch (error) {
       console.error('Error fetching fillots:', error);
     }
@@ -130,8 +127,8 @@ const ParrainView: React.FC<ParrainViewProps> = ({ user, pb, logout, setUser }) 
     fetchFillots();
     fetchConfigValues();
 
-    // Subscribe to updates in the users and config collections
-    pb.collection('users').subscribe('*', async ({ action }: { action: string }) => {
+    // Subscribe to updates in the adoptions and config collections
+    pb.collection('adoptions').subscribe('*', async ({ action }: { action: string }) => {
       if (action === 'update' || action === 'create' || action === 'delete') {
         fetchFillots();
       }

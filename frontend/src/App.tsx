@@ -21,7 +21,6 @@ const createCompleteUser = (partialUser: Partial<User> = {}): User => {
     favorites: partialUser.favorites || [],
     firstName: partialUser.firstName || '',
     lastName: partialUser.lastName || '',
-    parrain: partialUser.parrain || '',
     infos: partialUser.infos || { res: null, sex: null },
     ...partialUser
   };
@@ -102,7 +101,6 @@ function App() {
               const currentUser = pb.authStore.model ? createCompleteUser(pb.authStore.model) : createCompleteUser({
                 firstName: data.firstName,
                 lastName: data.lastName,
-                parrain: data.parrain,
                 infos: data.infos,
               });
               setUser(currentUser);
