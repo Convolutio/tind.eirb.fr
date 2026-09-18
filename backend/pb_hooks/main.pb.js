@@ -53,6 +53,7 @@ onRecordAuthRequest((e) => {
     // Map your custom claims
     if (claims.diplome) {
       e.record.set("diploma", claims.diplome);
+      // TODO: set the department
 
       const AUTHORIZED_DIPLOMAS = [
         "IIEIN3", "IIEIN4", "IIEIN5",  // Infos 
@@ -78,6 +79,7 @@ onRecordAuthRequest((e) => {
       if (DEROGATIONS.hasOwnProperty(claims.preferred_username)) {
         console.log(DEROGATIONS[claims.preferred_username]);
         e.record.set("diploma", DEROGATIONS[claims.preferred_username]);
+        // TODO: set the department
         needsUpdate = true;
       }
 
