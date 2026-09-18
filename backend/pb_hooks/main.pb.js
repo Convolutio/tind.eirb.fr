@@ -185,31 +185,3 @@ cronAdd("hello", "*/1 * * * *", () => {
     console.log("La clé 'TIME' n'a pas été trouvée dans la table config.");
   }
 });
-
-/** Hook for fillot adoption request.
- *
- *  Perform validations that Pocketbase's filter syntax does not implement.
- */
-onRecordBeforeCreateRequest((e) => {
-  /** Validation checks already implemented in pocketbase's table
-    *   - year of the fillot and the parrain
-    *   - instant time of the adoption after the shotgunDate of the parrain
-    * Validation checks implemented in this hook:
-    *   - same department 
-    *   - under the max fillot's number
-    */
-
-  // Get the parrain and the fillot's record
-  const parrainId = e.record.get("parrain");
-  const fillotId = e.record.get("fillot");
-  const dao = $app.dao();
-  const fillot = dao.findRecordById("users", parrainId);
-  const parrain = dao.findRecordById("users", fillotId);
-
-  // INFO: check if the departments are the same
-  const parrainDepartment = parrain.get("diploma").substring(0, 5);
-  const fillotDepartment = fillot.get("diploma").substring(0, 5);
-  if (parrainDepartment !== fillotDepartment) {
-    throw new BadRequestError("Le parrain et le fillot ne sont pas dans la même filière.");
-  }
-}, "adoptions");
