@@ -4,6 +4,16 @@ migrate((db) => {
   const collection = dao.findCollectionByNameOrId("_pb_users_auth_")
 
   // update
+  db.newQuery(`
+    INSERT INTO departments (name)
+    SELECT DISTINCT substr(diploma, 1, 5)
+    FROM users
+    WHERE diploma IS NOT NULL;
+    UPDATE users AS u
+    SET department = d.id
+    FROM departments AS d
+    WHERE substr(u.diploma, 1, 5) = d.name;
+  `).execute();
   collection.schema.addField(new SchemaField({
     "system": false,
     "id": "qbtnpirj",
@@ -43,6 +53,11 @@ migrate((db) => {
       "displayFields": null
     }
   }))
-
-  return dao.saveCollection(collection)
+  const result = dao.saveCollection(collection);
+  db.newQuery(`
+    DELETE FROM departments;
+    UPDATE users AS u
+    SET department = "";
+  `).execute();
+  return result;
 })
