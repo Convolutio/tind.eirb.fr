@@ -163,27 +163,6 @@ routerAdd("GET", "/api/fillots", (c) => {
   });
 });
 
-routerAdd("GET", "/api/nbFillots", (c) => {
-  let id = c.queryParam("id");
-  if (!id | typeof id !== 'string') {
-    return c.json(400, {
-      status: "error",
-      message: "Requête invalide"
-    });
-  }
-
-  const fillots = arrayOf(new Record());
-  $app.dao()
-    .recordQuery("users")
-    .where($dbx.exp("parrain = {:id}", { id }))
-    .all(fillots);
-
-  return c.json(200, {
-    status: "success",
-    nbfillots: fillots.length
-  })
-
-})
 
 cronAdd("hello", "*/1 * * * *", () => {
   const config = arrayOf(new Record());

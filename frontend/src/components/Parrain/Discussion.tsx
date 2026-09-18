@@ -4,6 +4,7 @@ import { Fillot } from '../../views/ParrainView';
 import { useTranslation } from 'react-i18next';
 import ChatComponent from './ChatComponent';
 import { notify } from '../Notifications';
+import pb from "../../api/pocketbase";
 
 interface DiscussionProps {
   activeFillot: Fillot;
@@ -60,44 +61,24 @@ const Discussion: React.FC<DiscussionProps> = ({
 
   const selectFillot = async (id: string) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/adoptFillot`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          idParrain: user.id,
-          idFillot: id,
-        }),
+      await pb.collection<{
+        parrain: string, fillot: string
+      }>('adoptions').create({ "parrain": user.id, "fillot": id });
+      setActiveFillot({
+        ...activeFillot,
+        parrain: user.id,
       });
-
-      const data = await response.json();
-
-      if (data.status === 'success') {
-        setActiveFillot({
-          ...activeFillot,
-          parrain: user.id,
-        });
-        fetchMayAdopt();
-      } else {
-        console.error('Erreur lors de l\'adoption du fillot:', data.message);
-        notify("Erreur lors de l'adoption du fillot")
-      }
+      fetchMayAdopt();
     } catch (error) {
       console.error('Erreur lors de l\'appel de la route d\'adoption:', error);
+      notify("Erreur lors de l'adoption du fillot")
     }
   };
 
   const fetchMayAdopt = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/nbFillots?id=${encodeURIComponent(user.id)}`);
-      const data = await response.json();
-      if (data.status === 'success') {
-        setCanAdopt(data.nbfillots < maxFillots);
-      } else {
-        console.error('Failed to fetch fillots:', data.message);
-        setCanAdopt(false);
-      }
+      const data = await pb.collection<{id: string, fillot_nb: number}>("fillot_nbs").getOne(user.id);
+      setCanAdopt(data.fillot_nb < maxFillots);
     } catch (error) {
       console.error('Error fetching fillots:', error);
       setCanAdopt(false);
