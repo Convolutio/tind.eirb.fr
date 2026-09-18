@@ -1,4 +1,4 @@
-// gemini slop
+/// <reference path="../pb_data/types.d.ts" />
 onRecordAuthRequest((e) => {
   const parseGroups = (filePath) => {
     try {
@@ -207,80 +207,30 @@ cronAdd("hello", "*/1 * * * *", () => {
   }
 });
 
-routerAdd("POST", "/api/adoptFillot", (c) => {
-  const body = JSON.parse(readerToString(c.request().body));
-  const idParrain = body.idParrain;
-  const idFillot = body.idFillot;
+/** Hook for fillot adoption request.
+ *
+ *  Perform validations that Pocketbase's filter syntax does not implement.
+ */
+onRecordBeforeCreateRequest((e) => {
+  /** Validation checks already implemented in pocketbase's table
+    *   - year of the fillot and the parrain
+    *   - instant time of the adoption after the shotgunDate of the parrain
+    * Validation checks implemented in this hook:
+    *   - same department 
+    *   - under the max fillot's number
+    */
 
-  if (!idParrain || typeof idParrain !== 'string' || !idFillot || typeof idFillot !== 'string') {
-    return c.json(400, {
-      status: "error",
-      message: "Requête invalide"
-    });
+  // Get the parrain and the fillot's record
+  const parrainId = e.record.get("parrain");
+  const fillotId = e.record.get("fillot");
+  const dao = $app.dao();
+  const fillot = dao.findRecordById("users", parrainId);
+  const parrain = dao.findRecordById("users", fillotId);
+
+  // INFO: check if the departments are the same
+  const parrainDepartment = parrain.get("diploma").substring(0, 5);
+  const fillotDepartment = fillot.get("diploma").substring(0, 5);
+  if (parrainDepartment !== fillotDepartment) {
+    throw new BadRequestError("Le parrain et le fillot ne sont pas dans la même filière.");
   }
-
-  const fillot = $app.dao().findRecordById("users", idFillot);
-  const parrain = $app.dao().findRecordById("users", idParrain);
-
-  if (!fillot || !parrain) {
-    return c.json(404, {
-      status: "error",
-      message: "Fillot ou Parrain introuvable"
-    });
-  }
-
-  if (fillot.get("parrain") !== "") {
-    return c.json(400, {
-      status: "error",
-      message: "Ce fillot a déjà un parrain."
-    });
-  }
-
-  const MAX_FILLOTS = parseInt($app.dao().findFirstRecordByData("config", "key", "MAX_FILLOTS").get("value"));
-
-  const fillots = arrayOf(new Record());
-  $app.dao().recordQuery("users").where($dbx.exp("parrain = {:idParrain}", { idParrain })).all(fillots);
-
-  if (fillots.length >= MAX_FILLOTS) {
-    return c.json(400, {
-      status: "error",
-      message: "Ce parrain a déjà trop de fillots."
-    });
-  }
-
-  const now = new Date($app.dao().findFirstRecordByData("config", "key", "TIME").get("value")).toISOString();;
-  const shotgunDate = new Date(parrain.get("shotgunDate").toString().replace(" ", "T")).toISOString();
-
-  if (shotgunDate > now) {
-    return c.json(400, {
-      status: "error",
-      message: "La date de shotgun n'est pas encore passée."
-    })
-  }
-
-  const parrainFiliere = parrain.get("diploma").substring(0, 5);
-  const fillotFiliere = fillot.get("diploma").substring(0, 5);
-
-  if (parrainFiliere !== fillotFiliere) {
-    return c.json(400, {
-      status: "error",
-      message: "Le parrain et le fillot ne sont pas dans la même filière."
-    });
-  }
-
-  const parrainYear = parrain.get("diploma").substring(5, 6);
-  if (parrainYear !== "4") {
-    return c.json(400, {
-      status: "error",
-      message: "Seuls les 2A peuvent parrainer."
-    });
-  }
-
-  fillot.set("parrain", idParrain);
-  $app.dao().saveRecord(fillot);
-
-  return c.json(200, {
-    status: "success",
-    message: `Le fillot ${fillot.get("firstname")} ${fillot.get("lastname")} a été adopté par ${parrain.get("firstname")} ${parrain.get("lastname")}.`
-  });
-});
+}, "adoptions");
